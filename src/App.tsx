@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, Info, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Support } from './components/Support';
 
 interface TikTokAuthor {
   nickname: string;
@@ -29,6 +30,9 @@ export default function App() {
   const [data, setData] = useState<TikTokData | null>(null);
   const [error, setError] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
 
   const handleFetch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +42,7 @@ export default function App() {
     setError('');
     setData(null);
     setIsPlaying(false);
+    setCurrentImageIndex(0);
 
     try {
       const response = await fetch('/api/fetch-tiktok', {
@@ -64,7 +69,6 @@ export default function App() {
     const proxyUrl = `/api/download?url=${encodeURIComponent(downloadUrl)}`;
     const a = document.createElement('a');
     a.href = proxyUrl;
-    a.download = 'dave_download';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -77,8 +81,32 @@ export default function App() {
     return num.toString();
   };
 
+  const titleText = "Download TikTok Videos Seamlessly.";
+  const titleWords = titleText.split(" ");
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+    },
+  };
+
+  const childVariants = {
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { type: 'spring', damping: 15, stiffness: 100 },
+    },
+    hidden: {
+      opacity: 0,
+      y: 10,
+      transition: { type: 'spring', damping: 15, stiffness: 100 },
+    },
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#111111] font-sans border-t-8 border-black overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#111111] font-sans overflow-x-hidden">
       {/* Header */}
       <header className="flex items-center justify-between px-6 md:px-10 py-6 bg-transparent">
         <div className="flex items-center gap-3">
@@ -94,7 +122,18 @@ export default function App() {
         
         {/* Hero Section */}
         <div className="w-full max-w-3xl mb-12 text-center">
-          <h1 className="text-3xl md:text-4xl font-black mb-4 tracking-tight">Download TikTok Videos Seamlessly.</h1>
+          <motion.h1 
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="text-3xl md:text-4xl font-black mb-4 tracking-tight flex flex-wrap justify-center gap-[0.2em]"
+          >
+            {titleWords.map((word, index) => (
+              <motion.span variants={childVariants} key={index}>
+                {word}
+              </motion.span>
+            ))}
+          </motion.h1>
           <p className="text-gray-500 text-sm mb-8 font-medium italic">Paste the URL below to fetch high-quality assets without watermarks.</p>
           
           <form onSubmit={handleFetch} className="w-full relative">
@@ -149,21 +188,64 @@ export default function App() {
               className="w-full max-w-5xl flex flex-col md:flex-row gap-6 md:gap-10 pb-20"
             >
               {/* Media Preview (Left) */}
-              <div className="w-full md:w-2/5 aspect-[9/16] bg-gray-100 rounded-3xl relative overflow-hidden shadow-sm flex items-center justify-center border border-gray-200 group">
+              <div className="w-full md:w-1/2 h-[450px] md:h-[600px] bg-black/5 rounded-3xl relative overflow-hidden shadow-sm border border-gray-200 group">
                 {data.images && data.images.length > 0 ? (
-                  <div 
-                    className="w-full h-full flex overflow-x-auto snap-x snap-mandatory"
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                  >
-                    {data.images.map((img, idx) => (
-                      <div key={idx} className="shrink-0 w-full h-full snap-center relative">
-                        <img src={img} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
-                        <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full">
-                          {idx + 1} / {data.images!.length}
-                        </div>
+                  <div className="absolute inset-0 overflow-hidden bg-black/5">
+                    <AnimatePresence initial={false} custom={direction}>
+                      <motion.img 
+                        key={currentImageIndex}
+                        src={data.images[currentImageIndex]} 
+                        alt={`Slide ${currentImageIndex + 1}`} 
+                        className="w-full h-full object-contain absolute inset-0" 
+                        custom={direction}
+                        initial={{ opacity: 0, x: direction > 0 ? "100%" : "-100%" }}
+                        animate={{ opacity: 1, x: "0%" }}
+                        exit={{ opacity: 0, x: direction > 0 ? "-100%" : "100%" }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    </AnimatePresence>
+                    
+                    <div className="absolute top-4 right-4 z-20">
+                      <div className="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg">
+                        {currentImageIndex + 1} / {data.images.length}
                       </div>
-                    ))}
-                    <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md p-3 rounded-xl">
+                    </div>
+
+                    <div className="absolute top-4 left-4 z-20">
+                      <button
+                        onClick={() => handleDownload(data.images![currentImageIndex])}
+                        className="bg-black/60 backdrop-blur-md text-white p-2 rounded-full hover:bg-black/80 transition-colors shadow-lg"
+                        title="Download current image"
+                      >
+                        <Download size={16} />
+                      </button>
+                    </div>
+
+                    {currentImageIndex > 0 && (
+                      <button 
+                        onClick={() => {
+                          setDirection(-1);
+                          setCurrentImageIndex(prev => prev - 1);
+                        }}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/60 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-colors z-20 shadow-lg"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                    )}
+                    
+                    {currentImageIndex < data.images.length - 1 && (
+                      <button 
+                        onClick={() => {
+                          setDirection(1);
+                          setCurrentImageIndex(prev => prev + 1);
+                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/60 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-colors z-20 shadow-lg"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    )}
+
+                    <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md p-3 rounded-xl pointer-events-none z-10">
                       <div className="flex items-center gap-2 mb-1">
                         <img src={data.author.avatar} alt="Avatar" className="w-6 h-6 rounded-full bg-gray-300 object-cover" />
                         <span className="text-[10px] text-white font-bold">@{data.author.unique_id}</span>
@@ -172,13 +254,13 @@ export default function App() {
                     </div>
                   </div>
                 ) : !isPlaying ? (
-                  <>
+                  <div className="absolute inset-0 bg-black/5">
                     <img
                       src={data.cover}
                       alt="Video Cover"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain absolute inset-0"
                     />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors z-10">
                       <div 
                         onClick={() => setIsPlaying(true)}
                         className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center shadow-xl cursor-pointer hover:scale-105 transition-transform"
@@ -186,21 +268,23 @@ export default function App() {
                         <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-black border-b-[8px] border-b-transparent ml-1"></div>
                       </div>
                     </div>
-                    <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md p-3 rounded-xl">
+                    <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md p-3 rounded-xl pointer-events-none z-10">
                       <div className="flex items-center gap-2 mb-1">
                         <img src={data.author.avatar} alt="Avatar" className="w-6 h-6 rounded-full bg-gray-300 object-cover" />
                         <span className="text-[10px] text-white font-bold">@{data.author.unique_id}</span>
                       </div>
                       <p className="text-[10px] text-gray-200 line-clamp-1">{data.title}</p>
                     </div>
-                  </>
+                  </div>
                 ) : (
-                  <video
-                    src={data.play}
-                    controls
-                    autoPlay
-                    className="w-full h-full object-cover"
-                  />
+                  <div className="absolute inset-0 bg-black">
+                    <video
+                      src={data.play}
+                      controls
+                      autoPlay
+                      className="w-full h-full object-contain outline-none absolute inset-0"
+                    />
+                  </div>
                 )}
               </div>
 
@@ -281,6 +365,19 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Floating Support Button */}
+      <button
+        onClick={() => setIsSupportOpen(true)}
+        className="fixed bottom-6 right-6 md:bottom-10 md:right-10 w-14 h-14 bg-black text-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 transition-colors z-40 hover:scale-105 transform duration-200"
+        title="Support Us"
+      >
+        <i className="fa-solid fa-money-bill-1-wave text-2xl"></i>
+      </button>
+
+      <AnimatePresence>
+        {isSupportOpen && <Support onClose={() => setIsSupportOpen(false)} />}
+      </AnimatePresence>
 
     </div>
   );

@@ -34,12 +34,13 @@ async function startServer() {
       
       let ext = 'mp4';
       if (contentType.includes('audio')) ext = 'mp3';
-      else if (contentType.includes('image/jpeg')) ext = 'jpg';
+      else if (contentType.includes('image/jpeg') || contentType.includes('image/jpg')) ext = 'jpg';
       else if (contentType.includes('image/png')) ext = 'png';
       else if (contentType.includes('image/webp')) ext = 'webp';
+      else if (contentType.includes('image')) ext = 'jpg'; // Fallback for other images
       
-      // Force binary content type to prevent browser from saving as .html
-      res.setHeader('Content-Type', 'application/octet-stream');
+      // Set the appropriate content type and content disposition for downloading
+      res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', `attachment; filename="dave_${Date.now()}.${ext}"`);
 
       if (response.body) {
@@ -55,9 +56,21 @@ async function startServer() {
 
   app.post('/api/fetch-tiktok', async (req, res) => {
     try {
-      const { url } = req.body;
+      let { url } = req.body;
       if (!url) {
         return res.status(400).json({ error: 'URL is required' });
+      }
+
+      // Resolve redirect for short links to speed up tikwm API
+      if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com')) {
+        try {
+          const redirectRes = await fetch(url, { method: 'HEAD' });
+          if (redirectRes.url) {
+            url = redirectRes.url;
+          }
+        } catch (e) {
+          console.error('Failed to resolve redirect:', e);
+        }
       }
 
       // We use tikwm.com API as requested
