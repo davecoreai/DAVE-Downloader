@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://davedownloader.up.railway.app/sitemap.xml
