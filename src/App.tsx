@@ -106,7 +106,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#111111] font-sans overflow-x-hidden">
+    <div className="min-h-[100dvh] flex flex-col bg-[#FFFFFF] text-[#111111] font-sans overflow-x-hidden">
       {/* Header */}
       <header className="flex items-center justify-between px-6 md:px-10 py-6 bg-transparent">
         <div className="flex items-center gap-3">

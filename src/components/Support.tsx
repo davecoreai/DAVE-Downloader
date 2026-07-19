@@ -21,7 +21,7 @@ export function Support({ onClose }: SupportProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      className="fixed inset-0 z-50 bg-[#FFFFFF] text-[#111111] flex flex-col items-center justify-center p-6 min-h-screen overflow-y-auto"
+      className="fixed inset-0 z-50 bg-[#FFFFFF] text-[#111111] flex flex-col items-center justify-center p-6 min-h-[100dvh] overflow-y-auto"
     >
       <button 
         onClick={onClose}
